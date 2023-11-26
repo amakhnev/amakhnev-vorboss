@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
 import pool from "../../utils/db";
 import { Widget } from "@/app/types";
-import { mapWidgets } from "@/app/utils/mapping";
+import { mapRowsToWidgets, mapToSelectQuery, mapWidgetToInsertQuery } from "@/app/utils/mapping";
 
 export const GET = async (request: Request) => {
   try {
-    const result = await pool.query(
-      "SELECT id, name, manufacturer, inventory FROM widgets"
-    );
-    const widgets: Widget[] = mapWidgets(result.rows);
+    const result = await pool.query(...mapToSelectQuery());
+    const widgets: Widget[] = mapRowsToWidgets(result.rows);
 
     return NextResponse.json(widgets);
   } catch (error) {
@@ -18,14 +16,11 @@ export const GET = async (request: Request) => {
 
 export const POST = async (request: Request) => {
   try {
-    const body: Widget = await request.json();
+    const widget: Widget = await request.json();
 
-    const result = await pool.query(
-      "INSERT INTO widgets (name, manufacturer, inventory) VALUES ($1, $2, $3) RETURNING *",
-      [body.name, body.manufacturer, body.inventory]
-    );
+    const result = await pool.query(...mapWidgetToInsertQuery(widget));
     
-    return NextResponse.json(mapWidgets(result.rows)[0]);
+    return NextResponse.json(mapRowsToWidgets(result.rows)[0]);
   } catch (error) {
     return NextResponse.json(
       {

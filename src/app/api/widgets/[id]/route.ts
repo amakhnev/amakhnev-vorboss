@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import pool from "../../../utils/db";
 import { Widget } from "@/app/types";
-import { mapWidgets } from "@/app/utils/mapping";
+import { mapRowsToWidgets, mapWidgetIdToDeleteQuery, mapWidgetToUpdateQuery } from "@/app/utils/mapping";
 
 export const DELETE = async (
   request: Request,
@@ -10,12 +10,9 @@ export const DELETE = async (
   const id: string = route.params.id;
 
   try {
-    const result = await pool.query(
-      "DELETE FROM widgets WHERE id = $1  RETURNING *",
-      [id]
-    );
+    const result = await pool.query(...mapWidgetIdToDeleteQuery(id));
 
-    const widgets: Widget[] = mapWidgets(result.rows);
+    const widgets: Widget[] = mapRowsToWidgets(result.rows);
     if (widgets.length > 0) {
       return new NextResponse(null, { status: 204 }); // 204 No Content
     } else {
@@ -45,13 +42,11 @@ export const PUT = async (
 ) => {
   try {
     const id: string = route.params.id;
-    const body: Widget = await request.json();
-    const result = await pool.query(
-      "UPDATE widgets SET name = $1, manufacturer = $2, inventory = $3 WHERE id = $4 RETURNING *",
-      [body.name, body.manufacturer, body.inventory, id]
-    );
+    const widget: Widget = await request.json();
+    widget.id = id; // can check if missing or different and return error
+    const result = await pool.query(...mapWidgetToUpdateQuery(widget));
 
-    const updatedWidgets: Widget[] = mapWidgets(result.rows);
+    const updatedWidgets: Widget[] = mapRowsToWidgets(result.rows);
     if (updatedWidgets.length == 1) {
       return NextResponse.json(updatedWidgets[0]);
     } else {
