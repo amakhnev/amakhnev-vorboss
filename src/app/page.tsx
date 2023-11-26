@@ -1,11 +1,15 @@
-'use client'
+"use client";
 import { useState, useEffect } from "react";
 import { Widget } from "./types";
+import WidgetEdit from "./components/WidgetEdit";
 
 export default function Home() {
   const [widgets, setWidgets] = useState<Widget[]>([]);
-  
-    useEffect(() => {
+
+  const [isWidgetEditModalOpen, setIsWidgetEditModalOpen] = useState(false);
+  const [currentWidget, setCurrentWidget] = useState<Widget>();
+
+  useEffect(() => {
     const fetchWidgets = async () => {
       const response = await fetch("/api/widgets");
       const data = await response.json();
@@ -15,22 +19,65 @@ export default function Home() {
     fetchWidgets();
   }, []);
 
-  const deleteWidget = async (widget:Widget) => {
+  const deleteWidget = async (widget: Widget) => {
     try {
       const response = await fetch(`/api/widgets/${widget.id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
       if (response.ok) {
-        setWidgets(widgets.filter(w => w.id !== widget.id));
+        setWidgets(widgets.filter((w) => w.id !== widget.id));
       } else {
-        // Handle the error response from your API
-        console.error('Failed to delete the widget');
+        // Handle the error response
+        console.error("Failed to delete the widget");
       }
     } catch (error) {
-      console.error('Error deleting widget:', error);
+      console.error("Error deleting widget:", error);
     }
   };
+
+  const openWidgetEditModalToAdd = () => {
+    setCurrentWidget({ name: '', manufacturer: '', inventory: 0 });
+    setIsWidgetEditModalOpen(true);
+  };
+
+  const openWidgetEditModalToEdit = (widget:Widget) => {
+    setCurrentWidget(widget);
+    setIsWidgetEditModalOpen(true);
+  };
+
+  const handleWidgetEditModalSave = async (widget:Widget) => {
+    const isUpdating = widget.id !== undefined;
+    const endpoint = isUpdating ? `/api/widgets/${widget.id}` : `/api/widgets`;
+  
+    try {
+      const response = await fetch(endpoint, {
+        method: isUpdating ? 'PUT' : 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(widget)
+      });
+  
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`);
+      }
+  
+      const updatedWidgets = await fetch('/api/widgets');
+      const updatedWidgetsData = await updatedWidgets.json();
+      setWidgets(updatedWidgetsData);
+  
+    } catch (error) {
+      console.error("Error saving widget:", error);
+    }
+  
+    setIsWidgetEditModalOpen(false);
+  };
+
+  const handleWidgetEditModalCancel = () => {
+    setIsWidgetEditModalOpen(false);
+  };
+
   return (
     <main className="w-screen">
       <div className="mx-auto mt-8 max-w-screen-lg px-2">
@@ -41,6 +88,7 @@ export default function Home() {
             <div className="flex items-center justify-start sm:justify-end">
               <button
                 type="button"
+                onClick={openWidgetEditModalToAdd}
                 className="inline-flex cursor-pointer items-center rounded-lg border border-gray-400 bg-white py-2 px-3 text-center text-sm font-medium text-gray-800 shadow hover:bg-gray-100 focus:shadow"
               >
                 Add New
@@ -97,6 +145,7 @@ export default function Home() {
                     {widget.inventory}
                     <button
                       type="button"
+                      onClick={() => openWidgetEditModalToEdit(widget)} 
                       className="md:hidden items-center rounded-full w-16 bg-blue-600 hover:bg-blue-500 p-1 m-1 text-white"
                     >
                       Edit
@@ -110,17 +159,18 @@ export default function Home() {
                     </button>
                   </td>
 
-                  <td className="whitespace-no-wrap hidden py-4 text-sm font-normal text-gray-500 sm:px-6 md:table-cell">
+                  <td className="whitespace-no-wrap hidden py-4 text-gray-500 md:table-cell">
                     <button
                       type="button"
-                      className="items-center rounded-full w-16 bg-blue-600 hover:bg-blue-500 p-1 m-1 text-white"
+                      onClick={() => openWidgetEditModalToEdit(widget)} 
+                      className="items-center rounded-full w-16 bg-blue-600 hover:bg-blue-500 p-1 m-1 text-white text-sm"
                     >
                       Edit
                     </button>
                     <button
                       type="button"
                       onClick={() => deleteWidget(widget)}
-                      className="items-center rounded-full w-16 bg-red-200 hover:bg-red-100 p-1 m-1 text-red-600 hover:text-red-400"
+                      className="items-center rounded-full w-16 bg-red-200 hover:bg-red-100 p-1 m-1 text-red-600 hover:text-red-400 text-sm"
                     >
                       Delete
                     </button>
@@ -131,6 +181,15 @@ export default function Home() {
           </table>
         </div>
       </div>
+
+      <WidgetEdit 
+        isOpen={isWidgetEditModalOpen}
+        onSave={handleWidgetEditModalSave}
+        onCancel={handleWidgetEditModalCancel}
+        initialData={currentWidget}
+      />
+
+
     </main>
   );
 }
