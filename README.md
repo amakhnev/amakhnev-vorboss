@@ -23,4 +23,24 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 Application is deployed into Vercel by connecting Vercel app to Github and managing deployment on push to main. The database is deployed to Supabase, with a free tier option. Free projects are placed on pause if not used for longer than 7 days. 
 
 
+## Architectural choices
 
+Relational database as data storage tier - because of low volume requirement + complexity of domain model. External databsae because of the pattern when data is not exclusively changed by FE, and external databasse would add possibility of direct database integration.
+
+Next.JS as front end with API layer
+- API are not complex and only serving FE.
+- supporting REST architectural principles.
+- easy to manage code, make changes.
+- no SSR or SSG, but options to use both client ans server side if needed.
+- responsive design with help of Tailwind CSS.
+
+Use of SQL vs ORM. 
+- trade off between complexity and fine control on statements execution. 
+- had to do mapping, some assumptions (changed data returned from DB) are used downstream in the code
+
+
+## What to do next or improve
+- Automate migrations, include into build
+- possibly migrate to ORM
+- Testing - unit tests for API functions
+- Testing - end-to-end testing using ?Cypress? 
